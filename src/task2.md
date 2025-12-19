@@ -29,10 +29,16 @@
     ```
     
     *План выполнения:*
-    [Вставьте план выполнения]
+     Bitmap Heap Scan on t_books  (cost=21.03..1335.59 rows=750 width=33) (actual time=0.039..0.041 rows=1 loops=1)
+     Recheck Cond: (to_tsvector('english'::regconfig, (title)::text) @@ '''expert'''::tsquery)
+     Heap Blocks: exact=1
+     ->  Bitmap Index Scan on t_books_fts_idx  (cost=0.00..20.84 rows=750 width=0) (actual time=0.017..0.017 rows=1 loops=1)
+          Index Cond: (to_tsvector('english'::regconfig, (title)::text) @@ '''expert'''::tsquery)
+     Planning Time: 1.059 ms
+     Execution Time: 0.070 ms
     
     *Объясните результат:*
-    [Ваше объяснение]
+    GIN индекс эффективен для полнотекстового поиска. Bitmap Index Scan с exact=1 (точный bitmap) быстро находит единственную строку.
 
 6. Удалите индекс:
     ```sql
@@ -90,10 +96,13 @@
      ```
      
      *План выполнения:*
-     [Вставьте план выполнения]
+     Index Scan using t_lookup_pk on t_lookup  (cost=0.42..8.44 rows=1 width=23) (actual time=0.048..0.049 rows=1 loops=1)
+     Index Cond: ((item_key)::text = '0000000455'::text)
+     Planning Time: 0.276 ms
+     Execution Time: 0.084 ms
      
      *Объясните результат:*
-     [Ваше объяснение]
+     Index Scan по первичному ключу эффективен. Данные не кластеризованы, требуется переход к heap.
 
 14. Выполните поиск по ключу в кластеризованной таблице:
      ```sql
@@ -102,10 +111,13 @@
      ```
      
      *План выполнения:*
-     [Вставьте план выполнения]
+     Index Scan using t_lookup_clustered_pkey on t_lookup_clustered  (cost=0.42..8.44 rows=1 width=23) (actual time=0.073..0.075 rows=1 loops=1)
+     Index Cond: ((item_key)::text = '0000000455'::text)
+     Planning Time: 0.322 ms
+     Execution Time: 0.128 ms
      
      *Объясните результат:*
-     [Ваше объяснение]
+     Index Scan по PK в кластеризованной таблице: время 0.128 мс (чуть больше). Кластеризация не даёт преимущества для точечных запросов по PK.
 
 15. Создайте индекс по значению для обычной таблицы:
      ```sql
@@ -125,10 +137,13 @@
      ```
      
      *План выполнения:*
-     [Вставьте план выполнения]
+     Index Scan using t_lookup_value_idx on t_lookup  (cost=0.42..8.44 rows=1 width=23) (actual time=0.044..0.044 rows=0 loops=1)
+     Index Cond: ((item_value)::text = 'T_BOOKS'::text)
+     Planning Time: 0.416 ms
+     Execution Time: 0.087 ms
      
      *Объясните результат:*
-     [Ваше объяснение]
+     Index Scan по вторичному индексу быстро находит 0 строк. Данные в heap не упорядочены по значению.
 
 18. Выполните поиск по значению в кластеризованной таблице:
      ```sql
@@ -137,12 +152,15 @@
      ```
      
      *План выполнения:*
-     [Вставьте план выполнения]
+     Index Scan using t_lookup_clustered_value_idx on t_lookup_clustered  (cost=0.42..8.44 rows=1 width=23) (actual time=0.051..0.052 rows=0 loops=1)
+     Index Cond: ((item_value)::text = 'T_BOOKS'::text)
+     Planning Time: 0.541 ms
+     Execution Time: 0.085 ms
      
      *Объясните результат:*
-     [Ваше объяснение]
+     Index Scan по вторичному индексу. Кластеризация по PK не влияет на поиск по значению, т.к. используется отдельный индекс.
 
 19. Сравните производительность поиска по значению в обычной и кластеризованной таблицах:
      
      *Сравнение:*
-     [Ваше сравнение]
+     Производительность почти одинаковая (0.087 vs 0.085 мс). Кластеризация по PK не даёт преимущества при поиске по вторичному индексу на item_value.
